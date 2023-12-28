@@ -7,8 +7,27 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+def add_text(img,text):
+    # 定义字体类型、大小和颜色
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1
+    color = (255, 0, 0)
+
+    # 获取文本框的大小
+    (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness=2)
+
+    # 计算文本框左下角的坐标
+    x = int((img.shape[1] - text_width) / 2)
+    y = text_height + 10
+
+    # 在图像的最上面中间绘制文本
+    cv2.putText(img, text, (x, y), font, font_scale, color, thickness=2)
+    return img
+
 def tempalte_match_one_image(template, image, methods):
     template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
+    cv2.imwrite("/media/xin/work1/github_pro/similarity/tempalte_match/template_data/my_test_data/mymeihuoqi.png",
+                template)
     w, h = template.shape[::-1]
     images = []
     for i in range(len(methods)):
@@ -22,14 +41,19 @@ def tempalte_match_one_image(template, image, methods):
         # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
         if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
             top_left = min_loc
+            if "NORMED" in methods[i]:
+                confidence = 1 - min_val
         else:
             top_left = max_loc
+            if "NORMED" in methods[i]:
+                confidence = max_val
 
         bottom_right = (top_left[0] + w, top_left[1] + h)
         cv2.rectangle(img1, top_left, bottom_right, 255, 2)
         images.append(img1)
         # 进行横向拼接
     result = cv2.hconcat([images[0], images[1]])
+    add_text(result,str(round(confidence,2)))
     return result
 
 
@@ -37,7 +61,7 @@ def tempalte_match_many_image(template, image, method, threshold):
     template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     w, h = template.shape[::-1]
-    res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+    res = cv2.matchTemplate(image, template, eval(method))
     # res = cv2.matchTemplate(img_gray, template, cv2.TM_CCORR_NORMED)
     loc = np.where(res >= threshold)
 
@@ -63,9 +87,10 @@ if __name__ == '__main__':
     match_methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
                      'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
     for i in range(0,len(match_methods),2):
-        print(i)
         methods = [match_methods[i], match_methods[i+1]]
         template = cv2.imread(opt.input_template)
+        # shuiping:(77,167);miehuoqi:(91,236)
+        template = cv2.resize(template,(91,236))
         search = file.Walk(opt.input_match_dir, ["png","jpeg","jpg"])
         listing = [glob.glob(s)[0] for s in search]
         for im_path in listing:
