@@ -1,7 +1,9 @@
 import argparse
 import glob
 import os
-import file
+
+from tempalte_match.template_match_pyramid_2 import get_realsense
+from utils import file
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -10,8 +12,8 @@ from matplotlib import pyplot as plt
 def add_text(img,text):
     # 定义字体类型、大小和颜色
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 1
-    color = (255, 0, 0)
+    font_scale = 0.8
+    color = (0, 0, 255)
 
     # 获取文本框的大小
     (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness=2)
@@ -26,8 +28,6 @@ def add_text(img,text):
 
 def tempalte_match_one_image(template, image, methods):
     template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
-    cv2.imwrite("/media/xin/work1/github_pro/similarity/tempalte_match/template_data/my_test_data/mymeihuoqi.png",
-                template)
     w, h = template.shape[::-1]
     images = []
     for i in range(len(methods)):
@@ -53,7 +53,7 @@ def tempalte_match_one_image(template, image, methods):
         images.append(img1)
         # 进行横向拼接
     result = cv2.hconcat([images[0], images[1]])
-    add_text(result,str(round(confidence,2)))
+    add_text(result,"Confidence:" + str(round(confidence,2)))
     return result
 
 
@@ -78,9 +78,11 @@ if __name__ == '__main__':
     parser.add_argument('--input_match_dir', type=str, default='',
                         help='Image directory or movie file or "camera" (for webcam).')
     parser.add_argument('--many_match', action='store_true',
-                        help='Do not display images to screen. Useful if running remotely (default: False).')
+                        help='Do not display images to screen.  (default: False).')
     parser.add_argument('--no_display', action='store_true',
                         help='Do not display images to screen. Useful if running remotely (default: False).')
+    parser.add_argument('--pyramid_match', action='store_true',
+                        help='Is it a pyramid match. (default: False).')
     parser.add_argument('--write_dir', type=str, default='',
                         help='Directory where to write output frames (default: "").')
     opt = parser.parse_args()
@@ -89,19 +91,27 @@ if __name__ == '__main__':
     for i in range(0,len(match_methods),2):
         methods = [match_methods[i], match_methods[i+1]]
         template = cv2.imread(opt.input_template)
-        # shuiping:(77,167);miehuoqi:(91,236)
-        template = cv2.resize(template,(91,236))
+        # shuiping:(77,167);miehuoqi:(91,236);yaoshi:(133,54);bin:(116,134)
+        # template = cv2.resize(template,(116,134))
         search = file.Walk(opt.input_match_dir, ["png","jpeg","jpg"])
         listing = [glob.glob(s)[0] for s in search]
         for im_path in listing:
             directory, filename = os.path.split(im_path)
-            grayim = cv2.imread(im_path)
-            if grayim is None:
+            match_image = cv2.imread(im_path)
+            if match_image is None:
                 raise Exception('Error reading image %s' % im_path)
-            if not opt.many_match:
-                res = tempalte_match_one_image(template, grayim, methods)
+            # 是否是金字塔匹配
+            if opt.pyramid_match:
+                if match_methods[i+1] == 'cv2.TM_SQDIFF_NORMED':
+                    res = get_realsense(match_image, template, True)
+                else:
+                    res = get_realsense(match_image, template, False)
             else:
-                res = tempalte_match_many_image(template, grayim, match_methods[1], 0.8)
+                if not opt.many_match:
+                    res = tempalte_match_one_image(template, match_image, methods)
+                else:
+                    res = tempalte_match_many_image(template, match_image, match_methods[1], 0.8)
+            print(f"{im_path}匹配成功！")
             if not opt.no_display:
                 cv2.imshow("res", res)
                 cv2.waitKey()

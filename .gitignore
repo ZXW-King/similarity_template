@@ -1,13 +1,8 @@
 ./idea
 .idea/
-src/core.db
-result/
 __pycache__
-src/database/core.db
 *.db
 __pycache__
-*.pyc
-*.pyd
 .idea
 *.db
 data/
