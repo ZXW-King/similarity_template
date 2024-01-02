@@ -1,12 +1,15 @@
+
 import argparse
 import glob
 import os
-
-from tempalte_match.template_match_pyramid_2 import get_realsense
-from utils import file
+import sys
+# from tempalte_match.template_match_pyramid_2 import get_realsense
+from template_match_pyramid_2 import get_realsense
+import file
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from multi_scale_match import template_matching_with_rectangle
 
 
 def add_text(img,text):
@@ -83,6 +86,8 @@ if __name__ == '__main__':
                         help='Do not display images to screen. Useful if running remotely (default: False).')
     parser.add_argument('--pyramid_match', action='store_true',
                         help='Is it a pyramid match. (default: False).')
+    parser.add_argument('--multi_scale', action='store_true',
+                        help='Is it a multi_scale match. (default: False).')
     parser.add_argument('--write_dir', type=str, default='',
                         help='Directory where to write output frames (default: "").')
     opt = parser.parse_args()
@@ -106,6 +111,10 @@ if __name__ == '__main__':
                     res = get_realsense(match_image, template, True)
                 else:
                     res = get_realsense(match_image, template, False)
+            #是否是多尺度匹配
+            elif opt.multi_scale:
+                res = template_matching_with_rectangle(template, match_image, False)
+                
             else:
                 if not opt.many_match:
                     res = tempalte_match_one_image(template, match_image, methods)
