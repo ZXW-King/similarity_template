@@ -249,9 +249,14 @@ def ghostnet(**kwargs):
 
 
 if __name__=='__main__':
-    model = ghostnet()
+    from torchsummary import summary
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = ghostnet().to(device)
     model.eval()
-    print(model)
-    input = torch.randn(32,3,320,256)
-    y = model(input)
-    print(y.size())
+    # print(model)
+    # input = torch.randn(32,3,320,256)
+    # y = model(input)
+    # print(y.size())
+    summary(model, (3, 224, 224))
+    # print(model19)
